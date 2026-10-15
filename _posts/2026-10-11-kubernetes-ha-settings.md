@@ -65,21 +65,38 @@ apiVersion: apps/v1
 kind: Deployment
 spec:
   template:
+    metadata:
+      labels:
+        app: awxseek
     spec:
       topologySpreadConstraints:
         # 硬约束：必须打散到不同节点
         - maxSkew: 1
           topologyKey: "kubernetes.io/hostname"
           whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: awxseek
+          matchLabelKeys:
+            - pod-template-hash
           # skip other fields ...
         # 软约束：尽量打散到不同可用区
         - maxSkew: 1
           topologyKey: "topology.kubernetes.io/zone"
           whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: awxseek
+          matchLabelKeys:
+            - pod-template-hash
           # skip other fields ...
 ```
 
 `whenUnsatisfiable` 有两个可选值。`DoNotSchedule` 会在不满足条件时让 Pod 处于 Pending，通常由此触发 Cluster Autoscaler 创建新节点，直到满足条件；`ScheduleAnyway` 则是尽力满足，相当于软约束。
+
+`topologySpreadConstraints` 也有一个需要注意的地方：应用升级时会滚动更新，前后两个版本的 Pod 会匹配相同的 label，从而互相干扰，最终 Pod 可能无法完美地分散。如果应用使用 Deployment 部署，可以在 `matchLabelKeys` 中指定 `pod-template-hash` 这个 label。应用升级时 `pod-template-hash` 总会改变，因此前后版本不会互相干扰。
+
+这里再简单提一下反亲和性（`antiAffinity`）。它与 `topologySpreadConstraints` 功能有些相似，容易混淆。`antiAffinity` 的主要效果是排它，例如实现一个节点上最多只有一个副本，特别适用于 etcd、Elasticsearch 这类通过共识协议组成集群的应用：严格排它能够确保节点不可用时，不会失去大多数成员，从而维持可用性。而 `topologySpreadConstraints` 更强调分散，当副本数多于节点数时，一个节点上可以存在 2 个或更多副本。
 
 ## 小结
 
