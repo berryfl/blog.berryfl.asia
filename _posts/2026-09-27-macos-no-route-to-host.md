@@ -35,7 +35,7 @@ Destination        Gateway            Flags               Netif Expire
 
 ## 一个更坑的细节
 
-即便 iTerm 已经在列表里，升级到 macOS 27 之后实际权限可能并未生效，需要把开关关掉再打开（或者退出重开 iTerm）才真正放行：
+即便 iTerm 已经在列表里，iTerm 自动升级之后实际权限可能并未生效，需要把开关关掉再打开（或者退出重开 iTerm）才真正放行：
 
 ```console
 % argocd login argocd.dba.berryfl.asia --sso
